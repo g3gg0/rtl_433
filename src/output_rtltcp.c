@@ -347,9 +347,9 @@ static THREAD_RETURN THREAD_CALL accept_thread(void *arg)
         pthread_mutex_unlock(&srv->lock);
 
         fprintf(stderr, "rtl_tcp client disconnected from %s port %s\n", host, port);
-        close(sock);
+        closesocket(sock);
     }
-    return NULL;
+    return 0;
 }
 
 static int rtltcp_server_start(rtltcp_server_t *srv, char const *host, char const *port, r_cfg_t *cfg, struct raw_output *output)
@@ -490,6 +490,15 @@ struct raw_output *raw_output_rtltcp_create(const char *host, const char *port, 
         WARN_CALLOC("raw_output_rtltcp_create()");
         return NULL; // NOTE: returns NULL on alloc failure.
     }
+#ifdef _WIN32
+    WSADATA wsa;
+
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+        perror("WSAStartup()");
+        free(rtltcp);
+        return NULL;
+    }
+#endif
 
     rtltcp->output.output_frame  = raw_output_rtltcp_frame;
     rtltcp->output.output_free   = raw_output_rtltcp_free;
